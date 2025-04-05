@@ -3,12 +3,9 @@
  * This file contains configuration settings for the SNOMED CT API
  */
 
-// Frontend API configuration
-// For GitHub Pages deployment, we need to use the full URL
-// For local development, we can use either relative path or direct URL
-export const API_BASE = process.env.NODE_ENV === 'production' 
-  ? "https://snowstorm.snomedtools.org/snowstorm/snomed-ct" 
-  : "https://snowstorm.snomedtools.org/snowstorm/snomed-ct";
+// Frontend API configuration 
+// Always use the full Snowstorm URL for GitHub Pages compatibility
+export const API_BASE = "https://snowstorm.snomedtools.org/snowstorm/snomed-ct";
 
 // SNOMED CT configuration
 // Branch to use for SNOMED CT API calls
