@@ -4,8 +4,10 @@
  */
 
 // Frontend API configuration
-// API base URL - use relative URL to target our API routes
-export const API_BASE = "/api";
+// API base URL - use direct URL to Snowstorm in development since we don't have API routes
+export const API_BASE = process.env.NODE_ENV === 'production' 
+  ? "/api" 
+  : "https://snowstorm.snomedtools.org/snowstorm/snomed-ct";
 
 // SNOMED CT configuration
 // Branch to use for SNOMED CT API calls

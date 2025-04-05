@@ -1,5 +1,5 @@
 import { Concept, ConceptDetail, SearchParams, SearchResponse } from "./types";
-import { API_BASE } from "../config/api";
+import { API_BASE, BRANCH } from "../config/api";
 
 // API constants
 // Static part of the ECL query
@@ -53,81 +53,66 @@ export async function searchConcepts({
   organSystem, 
   procedureMethod 
 }: SearchParams, offset = 0, limit = 20): Promise<SearchResponse> {
-  // Build the endpoint URL
-  const url = `${API_BASE}/concepts`;
-  
-  // Build query parameters
-  const params = new URLSearchParams();
-  
-  // Add search term if provided
-  if (term) {
-    params.append("term", term);
-  }
-  
-  // Build the ECL query - starting with the static part
-  let ecl = STATIC_ECL;
-  
-  // Create an array to hold our filter conditions
-  const conditions = [];
-  
-  // Add organ system filter if provided
-  if (organSystem && ORGAN_SYSTEM_IDS[organSystem]) {
-    const organSystemId = ORGAN_SYSTEM_IDS[organSystem];
-    // Use the correct syntax for organ system filter with parentheses
-    conditions.push(`(<< 71388002: << 363704007 = ${organSystemId})`);
-  }
-  
-  // Add procedure method filter if provided
-  if (procedureMethod && PROCEDURE_METHOD_IDS[procedureMethod]) {
-    const procedureMethodId = PROCEDURE_METHOD_IDS[procedureMethod];
-    // Use the correct syntax for procedure method with parentheses
-    conditions.push(`(<< 71388002: << 260686004 = ${procedureMethodId})`);
-  }
-  
-  // If we have additional conditions, add them to the base ECL
-  if (conditions.length > 0) {
-    // Join conditions with AND but don't use nested parentheses which can cause syntax errors
-    ecl = `${ecl} AND ${conditions.join(" AND ")}`;
-  }
-  
-  // Add offset and limit
-  params.append("offset", offset.toString());
-  params.append("limit", limit.toString());
-  
-  // Build the URL manually to ensure proper encoding
-  // Start with the base URL
-  let endpointWithParams = `${url}?`;
-  
-  // Add regular parameters
-  const paramsString = params.toString();
-  if (paramsString) {
-    endpointWithParams += paramsString;
-  }
-  
-  // Add ECL parameter with proper encoding
-  if (ecl) {
-    // Add & if we already have parameters
-    if (paramsString) {
-      endpointWithParams += '&';
-    }
-    // Use encodeURIComponent to ensure spaces are encoded as %20 not +
-    endpointWithParams += `ecl=${encodeURIComponent(ecl)}`;
-  }
-  
-  // Enhanced logging for debugging ECL queries
-  console.log("====== SEARCH PARAMETERS ======");
-  console.log("Term:", term || "None");
-  console.log("Organ System:", organSystem || "None", organSystem ? `(ID: ${ORGAN_SYSTEM_IDS[organSystem]})` : "");
-  console.log("Procedure Method:", procedureMethod || "None", procedureMethod ? `(ID: ${PROCEDURE_METHOD_IDS[procedureMethod]})` : "");
-  console.log("====== ECL QUERY ======");
-  console.log(ecl);
-  console.log("====== API ENDPOINT ======");
-  console.log(endpointWithParams);
-  console.log("===========================");
-
   try {
+    // Build the endpoint URL for the Snowstorm API - correct structure without browser
+    const baseUrl = `${API_BASE}/${BRANCH}/concepts`;
+    
+    // Build the ECL query - starting with the static part
+    let ecl = STATIC_ECL;
+    
+    // Create an array to hold our filter conditions
+    const conditions = [];
+    
+    // Add organ system filter if provided
+    if (organSystem && ORGAN_SYSTEM_IDS[organSystem]) {
+      const organSystemId = ORGAN_SYSTEM_IDS[organSystem];
+      // Use the correct syntax for organ system filter with parentheses
+      conditions.push(`(<< 71388002: << 363704007 = ${organSystemId})`);
+    }
+    
+    // Add procedure method filter if provided
+    if (procedureMethod && PROCEDURE_METHOD_IDS[procedureMethod]) {
+      const procedureMethodId = PROCEDURE_METHOD_IDS[procedureMethod];
+      // Use the correct syntax for procedure method with parentheses
+      conditions.push(`(<< 71388002: << 260686004 = ${procedureMethodId})`);
+    }
+    
+    // If we have additional conditions, add them to the base ECL
+    if (conditions.length > 0) {
+      // Join conditions with AND but don't use nested parentheses which can cause syntax errors
+      ecl = `${ecl} AND ${conditions.join(" AND ")}`;
+    }
+    
+    // Build the request URL with correct parameters
+    // We'll use a URLSearchParams object for proper encoding
+    const params = new URLSearchParams();
+    
+    // Add the standard parameters as shown in the correct URL
+    if (term) params.append("term", term);
+    params.append("offset", offset.toString());
+    params.append("limit", limit.toString());
+    params.append("includeLeafFlag", "false");
+    params.append("form", "inferred");
+    
+    // For ECL, we need to ensure it's properly encoded
+    params.append("ecl", ecl);
+    
+    // Build the full URL
+    const fullUrl = `${baseUrl}?${params.toString()}`;
+    
+    // Enhanced logging for debugging ECL queries
+    console.log("====== SEARCH PARAMETERS ======");
+    console.log("Term:", term || "None");
+    console.log("Organ System:", organSystem || "None", organSystem ? `(ID: ${ORGAN_SYSTEM_IDS[organSystem]})` : "");
+    console.log("Procedure Method:", procedureMethod || "None", procedureMethod ? `(ID: ${PROCEDURE_METHOD_IDS[procedureMethod]})` : "");
+    console.log("====== ECL QUERY ======");
+    console.log(ecl);
+    console.log("====== FULL URL ======");
+    console.log(fullUrl);
+    console.log("===========================");
+    
     // Make actual API request
-    const response = await fetch(endpointWithParams);
+    const response = await fetch(fullUrl);
     
     if (!response.ok) {
       // Try to parse the error response
@@ -163,11 +148,11 @@ export async function searchConcepts({
  * Get detailed information about a specific concept
  */
 export async function getConceptDetails(conceptId: string): Promise<ConceptDetail | null> {
-  // Build the endpoint URL
-  const endpoint = `${API_BASE}/concepts/${conceptId}?descendantCountForm=inferred`;
-  console.log("API endpoint for details:", endpoint);
-  
   try {
+    // Build the endpoint URL with proper structure - use browser path for detail endpoints
+    const endpoint = `${API_BASE}/browser/${BRANCH}/concepts/${conceptId}?descendantCountForm=inferred`;
+    console.log("API endpoint for details:", endpoint);
+    
     // Make actual API request
     const response = await fetch(endpoint);
     
@@ -200,11 +185,11 @@ export async function getConceptDetails(conceptId: string): Promise<ConceptDetai
  * Get parent concepts for the specified concept
  */
 export async function getConceptParents(conceptId: string): Promise<Concept[]> {
-  // Build the endpoint URL
-  const endpoint = `${API_BASE}/concepts/${conceptId}/parents?form=inferred`;
-  console.log("API endpoint for parents:", endpoint);
-  
   try {
+    // Build the endpoint URL with proper structure - use browser path for parent endpoints
+    const endpoint = `${API_BASE}/browser/${BRANCH}/concepts/${conceptId}/parents?form=inferred`;
+    console.log("API endpoint for parents:", endpoint);
+    
     // Make actual API request
     const response = await fetch(endpoint);
     
@@ -237,11 +222,11 @@ export async function getConceptParents(conceptId: string): Promise<Concept[]> {
  * Get child concepts for the specified concept
  */
 export async function getConceptChildren(conceptId: string): Promise<Concept[]> {
-  // Build the endpoint URL
-  const endpoint = `${API_BASE}/concepts/${conceptId}/children?form=inferred`;
-  console.log("API endpoint for children:", endpoint);
-  
   try {
+    // Build the endpoint URL with proper structure - use browser path for children endpoints
+    const endpoint = `${API_BASE}/browser/${BRANCH}/concepts/${conceptId}/children?form=inferred`;
+    console.log("API endpoint for children:", endpoint);
+    
     // Make actual API request
     const response = await fetch(endpoint);
     
