@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SNOMED CT Endoscopic Procedures Lookup
+
+A front-end application for searching and exploring endoscopic procedures in SNOMED CT terminology.
+
+## Features
+
+- Search for endoscopic procedures by term
+- Filter results by organ system
+- Filter results by procedure method
+- View detailed information about each concept
+- Explore synonyms, parent/child relationships, and attributes
+
+## Technology Stack
+
+- Next.js - React framework
+- TypeScript - Type-safe JavaScript
+- Shadcn UI - UI component library
+- Tailwind CSS - Utility-first CSS framework
 
 ## Getting Started
 
-First, run the development server:
+First, install the dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API Integration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This application integrates with the SNOMED CT Snowstorm API:
 
-## Learn More
+- API Documentation: [https://snowstorm.snomedtools.org/snowstorm/snomed-ct/swagger-ui/index.html](https://snowstorm.snomedtools.org/snowstorm/snomed-ct/swagger-ui/index.html)
 
-To learn more about Next.js, take a look at the following resources:
+## Search Parameters
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The application allows for searching with the following parameters:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Search Term**: Free text search for endoscopic procedures
+2. **Organ System**: Filter results by specific organ systems
+3. **Procedure Method**: Filter results by specific procedure methods
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `app/` - Next.js app directory
+  - `components/` - React components
+  - `lib/` - Utility functions, types, and API handlers
+  - `data/` - Mock data for development
+  
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is released under the MIT License.

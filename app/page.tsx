@@ -1,103 +1,296 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import SearchForm from "./components/SearchForm";
+import ResultsList from "./components/ResultsList";
+import ConceptDetail from "./components/ConceptDetail";
+import { searchConcepts, getConceptDetails } from "./lib/api";
+import { Concept, ConceptDetail as ConceptDetailType, SearchParams } from "./lib/types";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { VERSION } from "@/app/config/api";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [searchParams, setSearchParams] = useState<SearchParams>({
+    term: "",
+    organSystem: "",
+    procedureMethod: ""
+  });
+  
+  const [results, setResults] = useState<Concept[]>([]);
+  const [totalResults, setTotalResults] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  
+  const [selectedConcept, setSelectedConcept] = useState<Concept | null>(null);
+  const [conceptDetail, setConceptDetail] = useState<ConceptDetailType | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  
+  // Add state for error handling
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Add a ref for the concept detail section
+  const conceptDetailRef = useRef<HTMLDivElement>(null);
+
+  // Add state for mobile view management
+  const [showDetailOnMobile, setShowDetailOnMobile] = useState(false);
+
+  // Search for concepts - called manually by the SearchForm component
+  const handleSearch = useCallback((params: SearchParams) => {
+    // Update search parameters
+    setSearchParams(params);
+    
+    // Execute the search regardless of whether criteria are provided
+    // This allows the static part of the ECL to be used for searching
+    const fetchResults = async () => {
+      setIsSearching(true);
+      setSearchError(null); // Clear previous errors
+      try {
+        const response = await searchConcepts(params);
+        setResults(response.items);
+        setTotalResults(response.total);
+        setCurrentPage(0);
+        setHasSearched(true);
+        
+        // Clear the selected concept and details when search parameters change
+        setSelectedConcept(null);
+        setConceptDetail(null);
+      } catch (error) {
+        console.error("Error searching concepts:", error);
+        setSearchError(error instanceof Error ? error.message : "Failed to fetch results");
+        setResults([]);
+        setTotalResults(0);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    fetchResults();
+  }, []);
+
+  // Fetch concept details when a concept is selected
+  useEffect(() => {
+    if (!selectedConcept) {
+      setConceptDetail(null);
+      return;
+    }
+
+    const fetchConceptDetail = async () => {
+      setIsLoadingDetail(true);
+      setDetailError(null); // Clear previous errors
+      try {
+        const detail = await getConceptDetails(selectedConcept.conceptId);
+        setConceptDetail(detail);
+      } catch (error) {
+        console.error("Error fetching concept details:", error);
+        setDetailError(error instanceof Error ? error.message : "Failed to fetch concept details");
+        setConceptDetail(null);
+      } finally {
+        setIsLoadingDetail(false);
+      }
+    };
+
+    fetchConceptDetail();
+  }, [selectedConcept]);
+
+  // Handle reset - clear all results and return to initial state
+  const handleReset = useCallback(() => {
+    // Clear search parameters
+    setSearchParams({
+      term: "",
+      organSystem: "",
+      procedureMethod: ""
+    });
+    
+    // Clear results and selection state
+    setResults([]);
+    setTotalResults(0);
+    setCurrentPage(0);
+    setSelectedConcept(null);
+    setConceptDetail(null);
+    
+    // Reset the layout
+    setHasSearched(false);
+  }, []);
+
+  // Handle loading more results
+  const handleLoadMore = async () => {
+    const nextPage = currentPage + 1;
+    const offset = nextPage * 20;
+
+    try {
+      // Set loading state
+      setIsSearching(true);
+      
+      // Use the current searchParams state
+      const response = await searchConcepts(searchParams, offset);
+      setResults([...results, ...response.items]);
+      setCurrentPage(nextPage);
+    } catch (error) {
+      console.error("Error loading more results:", error);
+      setSearchError(error instanceof Error ? error.message : "Failed to load more results");
+    } finally {
+      // Clear loading state
+      setIsSearching(false);
+    }
+  };
+
+  // Handle selecting a concept
+  const handleSelectConcept = (concept: Concept) => {
+    setSelectedConcept(concept);
+    
+    // On mobile devices, show the detail view
+    if (window.innerWidth < 1024) {
+      setShowDetailOnMobile(true);
+      
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+    }
+  };
+  
+  // Handle back button on mobile
+  const handleBackToResults = () => {
+    setShowDetailOnMobile(false);
+  };
+
+  return (
+    <main className="min-h-screen">
+      <div className="absolute top-4 right-4 lg:top-6 lg:right-6 z-10 hidden lg:flex items-center gap-2">
+        <div className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+          v{VERSION}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+        <ThemeToggle />
+      </div>
+      {!hasSearched ? (
+        <div className="container mx-auto py-6 px-4 md:px-6 flex-grow flex flex-col items-center justify-center min-h-screen">
+          <div className="w-full max-w-md">
+            <header className="mb-6 text-center">
+              <h1 className="text-3xl font-bold tracking-tight">
+                SNOMED CT Endoscopic Procedures Lookup
+              </h1>
+              <p className="text-muted-foreground mt-1 mb-2">
+                Search for endoscopic procedures in SNOMED CT terminology
+              </p>
+              <div className="lg:hidden flex justify-center items-center gap-2 mb-4">
+                <div className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                  v{VERSION}
+                </div>
+                <ThemeToggle />
+              </div>
+            </header>
+            <SearchForm onSearch={handleSearch} initialParams={searchParams} />
+            
+            {/* Display search error on initial screen */}
+            {searchError && (
+              <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-md text-red-800">
+                <p className="text-sm font-medium">Error: {searchError}</p>
+                <p className="text-xs mt-1">
+                  Please check if the API server is running at localhost:8080
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="relative flex flex-col min-h-screen">
+          <header className="py-4 bg-background mb-8">
+            <div className="container mx-auto px-4 md:px-6">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  SNOMED CT Endoscopic Procedures Lookup
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  Search for endoscopic procedures in SNOMED CT terminology
+                </p>
+                <div className="lg:hidden flex items-center gap-2 mt-2">
+                  <div className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                    v{VERSION}
+                  </div>
+                  <ThemeToggle />
+                </div>
+              </div>
+              {/* Mobile view context indicator */}
+              {showDetailOnMobile && selectedConcept && (
+                <div className="flex items-center mt-3 lg:hidden">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleBackToResults}
+                    className="flex items-center gap-1 text-sm"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> 
+                    Back to results
+                  </Button>
+                </div>
+              )}
+            </div>
+          </header>
+          
+          <div className="container mx-auto pb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              {/* Left column - Search form - Always visible */}
+              <div className={`lg:col-span-3 ${showDetailOnMobile ? 'hidden lg:block' : 'block px-4 lg:px-0'}`}>
+                <SearchForm 
+                  onSearch={handleSearch} 
+                  onReset={handleReset} 
+                  hasSearched={hasSearched} 
+                  initialParams={searchParams}
+                  isLoading={isSearching}
+                />
+              </div>
+              
+              {/* Middle column - Results list - Hidden on mobile when showing details */}
+              <div className={`lg:col-span-4 ${showDetailOnMobile ? 'hidden lg:block' : 'block px-4 lg:px-0'}`}>
+                {searchError ? (
+                  <div className="p-4 bg-red-100 border border-red-300 rounded-md text-red-800">
+                    <p className="text-sm font-medium">Error: {searchError}</p>
+                    <p className="text-xs mt-1">
+                      Please check if the API server is running at localhost:8080
+                    </p>
+                  </div>
+                ) : (
+                  <ResultsList
+                    results={results}
+                    total={totalResults}
+                    onLoadMore={handleLoadMore}
+                    onSelectConcept={handleSelectConcept}
+                    selectedConceptId={selectedConcept?.conceptId}
+                    isLoading={isSearching}
+                  />
+                )}
+              </div>
+              
+              {/* Right column - Concept detail - Conditionally shown on mobile */}
+              <div className={`lg:col-span-5 h-auto ${showDetailOnMobile ? 'block px-4 lg:px-0' : 'hidden lg:block'}`} ref={conceptDetailRef}>
+                {detailError ? (
+                  <div className="p-4 bg-red-100 border border-red-300 rounded-md text-red-800">
+                    <p className="text-sm font-medium">Error: {detailError}</p>
+                    <p className="text-xs mt-1">
+                      Please check if the API server is running at localhost:8080
+                    </p>
+                  </div>
+                ) : (
+                  <ConceptDetail
+                    conceptDetail={conceptDetail}
+                    isLoading={isLoadingDetail}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Footer */}
+      <footer className="py-4 mt-auto">
+        <div className="container mx-auto px-4 md:px-6 text-center text-xs text-muted-foreground">
+          Developed by <a href="https://www.this.or.th/" target="_blank" rel="noopener noreferrer" className="hover:text-primary">Thai Health Information Standards Development Center (THIS)</a> in 2025
+        </div>
       </footer>
-    </div>
+    </main>
   );
 }
