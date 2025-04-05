@@ -54,6 +54,17 @@ The application allows for searching with the following parameters:
   - `lib/` - Utility functions, types, and API handlers
   - `data/` - Mock data for development
   
+## Configuration
+
+The application can be configured to use either mock data or connect to the real SNOMED CT API:
+
+```typescript
+export const USE_REAL_SERVER = true;
+```
+
+- When set to `true`: The application connects to the actual SNOMED CT Snowstorm API
+- When set to `false`: The application uses mock data for development and testing
+
 ## License
 
 This project is released under the MIT License.
