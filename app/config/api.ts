@@ -13,7 +13,7 @@ export const BRANCH = "MAIN";
 
 // Server configuration
 // Set to true to use the real Snowstorm server, false to use local development server
-export const USE_REAL_SERVER = false;
+export const USE_REAL_SERVER = true;
 
 // Backend API configuration
 // Base URL for the backend Snowstorm API server
