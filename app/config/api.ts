@@ -4,9 +4,10 @@
  */
 
 // Frontend API configuration
-// API base URL - use direct URL to Snowstorm in development since we don't have API routes
+// For GitHub Pages deployment, we need to use the full URL
+// For local development, we can use either relative path or direct URL
 export const API_BASE = process.env.NODE_ENV === 'production' 
-  ? "/api" 
+  ? "https://snowstorm.snomedtools.org/snowstorm/snomed-ct" 
   : "https://snowstorm.snomedtools.org/snowstorm/snomed-ct";
 
 // SNOMED CT configuration
