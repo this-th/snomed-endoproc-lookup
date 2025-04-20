@@ -5,7 +5,7 @@
 
 // Frontend API configuration
 // Always use the full Snowstorm URL for GitHub Pages compatibility
-export const API_BASE = "https://128.199.223.121:8080";
+export const API_BASE = "https://sct-endo-demo.rath.asia/snowstorm";
 
 // SNOMED CT configuration
 // Branch to use for SNOMED CT API calls
@@ -18,7 +18,7 @@ export const USE_REAL_SERVER = true;
 // Backend API configuration
 // Base URL for the backend Snowstorm API server
 export const SNOWSTORM_API_BASE = USE_REAL_SERVER
-  ? "https://128.199.223.121:8080"
+  ? "https://sct-endo-demo.rath.asia/snowstorm"
   : "http://localhost:8080";
 
 // Browser path - just the endpoint name
